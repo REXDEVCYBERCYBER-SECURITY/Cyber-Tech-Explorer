@@ -110,16 +110,18 @@ const InventionDetail: React.FC<Props> = ({ inventions, onUpdateNotes }) => {
             <textarea 
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Input field research observations, anomaly reports, or resonance data..."
-              className="w-full bg-black/50 border border-emerald-500/20 rounded-xl p-6 font-mono-tech text-emerald-100 text-sm focus:outline-none focus:border-emerald-500/60 min-h-[180px] transition-all mb-4 placeholder:text-emerald-900/40"
+              placeholder="Input field research observations..."
+              className="w-full bg-black/50 border border-emerald-500/20 rounded-xl p-6 font-mono-tech text-emerald-100 text-sm focus:outline-none focus:border-emerald-500/60 min-h-[180px] transition-all mb-12 placeholder:text-emerald-900/40"
             />
             
-            <button 
-              onClick={handleSaveNotes}
-              className="w-full py-3 bg-emerald-600/10 border border-emerald-600/40 text-emerald-400 font-mono-tech text-xs uppercase tracking-[0.3em] hover:bg-emerald-600/20 transition-all rounded-lg"
-            >
-              [ Sync_Notes_to_Core ]
-            </button>
+            <div className="flex justify-center">
+              <button 
+                onClick={handleSaveNotes}
+                className="quantum-btn w-full"
+              >
+                Sync Notes
+              </button>
+            </div>
           </div>
         </div>
       </div>

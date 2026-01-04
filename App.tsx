@@ -5,6 +5,8 @@ import { performSecurityAudit, synthesizeIntelligence } from './services/geminiS
 import { Invention, SecurityAudit, SuitUpgrade } from './types';
 import InventionCard from './components/InventionCard';
 import InventionDetail from './components/InventionDetail';
+import ThreatFeed from './components/ThreatFeed';
+import ManifestationHub from './components/ManifestationHub';
 
 const STORAGE_KEY = 'quantum_cyber_hub_v3';
 
@@ -38,7 +40,7 @@ const App: React.FC = () => {
   const [essence, setEssence] = useState(1000);
   const [upgrades, setUpgrades] = useState<SuitUpgrade[]>(INITIAL_UPGRADES);
   
-  // UI State
+  // Filtering & Sorting State
   const [synthPrompt, setSynthPrompt] = useState('');
   const [synthFormat, setSynthFormat] = useState('Tactical Brief');
   const [isSynthesizing, setIsSynthesizing] = useState(false);
@@ -46,6 +48,7 @@ const App: React.FC = () => {
   const [isAuditing, setIsAuditing] = useState(false);
   const [lastAudit, setLastAudit] = useState<SecurityAudit | null>(null);
   const [stabilitySort, setStabilitySort] = useState<SortOrder>('none');
+  const [minStability, setMinStability] = useState<number>(0);
 
   // Load Data
   useEffect(() => {
@@ -67,16 +70,17 @@ const App: React.FC = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify({ inventions, essence, upgrades }));
   }, [inventions, essence, upgrades]);
 
-  // Sorting Logic
-  const sortedInventions = useMemo(() => {
-    const list = [...inventions];
+  // Filtering & Sorting Logic
+  const filteredAndSortedInventions = useMemo(() => {
+    let list = inventions.filter(inv => inv.quantumStability >= minStability);
+    
     if (stabilitySort === 'stability-asc') {
       return list.sort((a, b) => a.quantumStability - b.quantumStability);
     } else if (stabilitySort === 'stability-desc') {
       return list.sort((a, b) => b.quantumStability - a.quantumStability);
     }
     return list;
-  }, [inventions, stabilitySort]);
+  }, [inventions, stabilitySort, minStability]);
 
   const handleSynthesize = async () => {
     if (!synthPrompt) return;
@@ -90,7 +94,7 @@ const App: React.FC = () => {
         category: result.category || 'Classified Tech',
         tags: result.tags || ['CYBER', 'QUANTUM'],
         status: 'Prototype',
-        quantumStability: Math.floor(Math.random() * 30) + 60,
+        quantumStability: Math.floor(Math.random() * 40) + 50,
         energyOutput: Math.floor(Math.random() * 40) + 50,
         cyberSync: Math.floor(Math.random() * 20) + 70,
         resonance: 0,
@@ -98,12 +102,17 @@ const App: React.FC = () => {
       };
       setInventions([newInvention, ...inventions]);
       setSynthPrompt('');
-      window.location.hash = '#/'; // Direct redirect to feed
+      window.location.hash = '#/';
     } catch (e) {
       console.error(e);
     } finally {
       setIsSynthesizing(false);
     }
+  };
+
+  const onManifested = (newInvention: Invention) => {
+    setInventions([newInvention, ...inventions]);
+    setEssence(prev => Math.max(0, prev - 50));
   };
 
   const handleAudit = async () => {
@@ -142,15 +151,16 @@ const App: React.FC = () => {
                <span className="font-orbitron font-black text-cyan-400">QS</span>
             </div>
             <div>
-              <h1 className="font-orbitron text-xl font-black text-white neon-text-cyan tracking-tighter">CYBER HUB</h1>
-              <p className="text-[10px] font-mono-tech text-cyan-600 tracking-[0.2em] uppercase">Intelligence CMS v6.2</p>
+              <h1 className="font-orbitron text-xl font-black text-white neon-text-cyan tracking-tighter uppercase italic">Cyber Hub</h1>
+              <p className="text-[10px] font-mono-tech text-cyan-600 tracking-[0.2em] uppercase">Intelligence CMS v6.5</p>
             </div>
           </Link>
 
-          <nav className="flex items-center gap-6 md:gap-10 font-mono-tech text-xs">
+          <nav className="flex items-center gap-4 md:gap-8 font-mono-tech text-[10px] md:text-xs">
             <NavLink to="/" className={({isActive}) => `uppercase tracking-widest transition-all ${isActive ? 'text-cyan-400 neon-text-cyan' : 'text-gray-500 hover:text-white'}`}>[ Feed ]</NavLink>
             <NavLink to="/auditor" className={({isActive}) => `uppercase tracking-widest transition-all ${isActive ? 'text-red-400' : 'text-gray-500 hover:text-white'}`}>[ Auditor ]</NavLink>
             <NavLink to="/synthesis" className={({isActive}) => `uppercase tracking-widest transition-all ${isActive ? 'text-purple-400' : 'text-gray-500 hover:text-white'}`}>[ Synthesis ]</NavLink>
+            <NavLink to="/manifest" className={({isActive}) => `uppercase tracking-widest transition-all ${isActive ? 'text-cyan-400' : 'text-gray-500 hover:text-white'}`}>[ Manifest ]</NavLink>
             <NavLink to="/core" className={({isActive}) => `uppercase tracking-widest transition-all ${isActive ? 'text-emerald-400' : 'text-gray-500 hover:text-white'}`}>[ Core ]</NavLink>
           </nav>
 
@@ -164,87 +174,117 @@ const App: React.FC = () => {
           <Routes>
             <Route path="/" element={
               <div className="animate-in fade-in duration-500">
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
-                  <div>
-                    <h2 className="font-orbitron text-4xl font-black text-white uppercase tracking-tighter italic">Discovery Registry</h2>
-                    <div className="h-1 w-32 bg-gradient-to-r from-cyan-500 to-transparent mt-2" />
-                  </div>
-                  
-                  <div className="flex flex-col items-end gap-2">
-                    <span className="text-[10px] font-mono-tech text-gray-500 uppercase tracking-widest">Protocol: Sort_Order</span>
-                    <div className="relative group">
-                      <select 
-                        value={stabilitySort}
-                        onChange={(e) => setStabilitySort(e.target.value as SortOrder)}
-                        className="bg-black/60 border border-cyan-500/30 text-cyan-400 font-mono-tech text-[11px] px-4 py-2 rounded uppercase tracking-widest focus:outline-none focus:border-cyan-400 appearance-none cursor-pointer pr-10 hover:bg-cyan-500/10 transition-all shadow-[0_0_10px_rgba(0,243,255,0.05)]"
-                      >
-                        <option value="none">Stability: Default</option>
-                        <option value="stability-asc">Stability: Low &rarr; High</option>
-                        <option value="stability-desc">Stability: High &rarr; Low</option>
-                      </select>
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-cyan-500 text-[10px]">▼</div>
+                <div className="mb-8">
+                  <h2 className="font-orbitron text-4xl font-black text-white uppercase tracking-tighter italic">Discovery Registry</h2>
+                  <div className="h-1 w-32 bg-gradient-to-r from-cyan-500 to-transparent mt-2" />
+                </div>
+
+                {/* HUD Command Center for Filters */}
+                <div className="glass-panel p-6 rounded-2xl border-cyan-500/20 mb-10 flex flex-col lg:flex-row items-center gap-10">
+                  <div className="flex-1 w-full space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[10px] font-mono-tech text-cyan-500 uppercase tracking-[0.3em]">Stability_Threshold</span>
+                      <span className="text-sm font-bold text-cyan-300 font-mono-tech">{minStability}%+</span>
                     </div>
+                    <input 
+                      type="range" 
+                      min="0" 
+                      max="100" 
+                      value={minStability} 
+                      onChange={(e) => setMinStability(parseInt(e.target.value))}
+                      className="w-full h-1 bg-black/50 rounded-lg appearance-none cursor-pointer accent-cyan-500 border border-white/5 shadow-[0_0_10px_rgba(0,243,255,0.1)]"
+                    />
+                  </div>
+
+                  <div className="flex flex-col md:flex-row items-center gap-6 w-full lg:w-auto">
+                    <div className="flex flex-col items-center md:items-end gap-1">
+                      <span className="text-[9px] font-mono-tech text-gray-500 uppercase tracking-widest">Sorting_Protocol</span>
+                      <div className="flex bg-black/40 p-1 rounded-lg border border-white/5">
+                        <button 
+                          onClick={() => setStabilitySort('stability-asc')}
+                          className={`px-4 py-1.5 rounded text-[10px] font-mono-tech uppercase transition-all ${stabilitySort === 'stability-asc' ? 'bg-cyan-500 text-black font-bold' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                          Low-Hi
+                        </button>
+                        <button 
+                          onClick={() => setStabilitySort('stability-desc')}
+                          className={`px-4 py-1.5 rounded text-[10px] font-mono-tech uppercase transition-all ${stabilitySort === 'stability-desc' ? 'bg-cyan-500 text-black font-bold' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                          Hi-Low
+                        </button>
+                      </div>
+                    </div>
+
+                    <button 
+                      onClick={() => { setMinStability(0); setStabilitySort('none'); }}
+                      className="text-[10px] font-mono-tech text-red-900 hover:text-red-500 uppercase tracking-widest border border-red-900/20 px-4 py-2 rounded-lg hover:bg-red-500/10 transition-all"
+                    >
+                      [ Clear ]
+                    </button>
                   </div>
                 </div>
                 
-                {sortedInventions.length === 0 ? (
-                  <div className="glass-panel p-20 rounded-2xl flex flex-col items-center justify-center text-center border-white/5">
-                    <div className="text-4xl mb-4 opacity-10 font-orbitron">NO ASSETS DETECTED</div>
-                    <p className="text-gray-600 max-w-sm font-mono-tech uppercase text-xs">The repository is currently empty. Use the Synthesis Lab to manifest new technology.</p>
-                    <Link to="/synthesis" className="mt-8 px-6 py-2 border border-purple-500/50 text-purple-400 text-xs font-mono-tech hover:bg-purple-500/10 transition-all uppercase">Initiate Synthesis</Link>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+                  <div className="lg:col-span-8">
+                    {filteredAndSortedInventions.length === 0 ? (
+                      <div className="glass-panel p-20 rounded-2xl flex flex-col items-center justify-center text-center border-white/5">
+                        <div className="text-4xl mb-4 opacity-10 font-orbitron uppercase">Signal Missing</div>
+                        <p className="text-gray-600 max-w-sm font-mono-tech uppercase text-xs">
+                          {inventions.length > 0 ? "No assets meet the current filter criteria." : "Registry empty. Manifest new tech to begin."}
+                        </p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        {filteredAndSortedInventions.map(inv => (
+                          <InventionCard key={inv.id} invention={inv} onResonate={resonateInvention} />
+                        ))}
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {sortedInventions.map(inv => (
-                      <InventionCard key={inv.id} invention={inv} onResonate={resonateInvention} />
-                    ))}
+
+                  <div className="lg:col-span-4">
+                    <ThreatFeed />
                   </div>
-                )}
+                </div>
               </div>
             } />
 
             <Route path="/invention/:id" element={<InventionDetail inventions={inventions} onUpdateNotes={updateNotes} />} />
-
+            
             <Route path="/auditor" element={
               <div className="max-w-4xl mx-auto animate-in slide-in-from-bottom-4 duration-500">
-                <div className="glass-panel p-10 rounded-3xl border-red-500/20 shadow-[0_0_50px_rgba(239,68,68,0.05)]">
-                  <div className="flex items-center gap-4 mb-8">
-                    <div className="w-12 h-12 rounded-lg bg-red-500/10 border border-red-500/30 flex items-center justify-center text-2xl text-red-500">🛡️</div>
-                    <div>
-                      <h2 className="font-orbitron text-3xl font-black text-red-500 uppercase italic">Security Auditor</h2>
-                      <p className="text-gray-500 font-mono-tech text-[10px] uppercase tracking-[0.4em]">Advanced Vulnerability Scanning Engine</p>
-                    </div>
-                  </div>
-                  <div className="space-y-6">
-                    <textarea 
-                      value={auditTarget}
-                      onChange={(e) => setAuditTarget(e.target.value)}
-                      placeholder="Input code snippet or tech description for deep-layer scanning..."
-                      className="w-full bg-black/60 border border-red-500/20 rounded-2xl p-6 font-mono-tech text-red-100 focus:outline-none focus:border-red-500 transition-all min-h-[160px] text-sm"
-                    />
+                <div className="glass-panel p-10 rounded-3xl border-red-500/20">
+                  <h2 className="font-orbitron text-3xl font-black text-red-500 uppercase italic mb-8">Security Auditor</h2>
+                  <textarea 
+                    value={auditTarget}
+                    onChange={(e) => setAuditTarget(e.target.value)}
+                    placeholder="Input tech specs for audit..."
+                    className="w-full bg-black/60 border border-red-500/20 rounded-2xl p-6 font-mono-tech text-red-100 min-h-[160px] mb-12 focus:outline-none focus:border-red-500"
+                  />
+                  <div className="flex justify-center pb-8">
                     <button 
                       onClick={handleAudit}
                       disabled={isAuditing || !auditTarget}
-                      className="w-full py-4 bg-red-600 hover:bg-red-500 text-white font-orbitron font-bold uppercase tracking-widest disabled:opacity-20 transition-all flex items-center justify-center gap-3"
+                      className="quantum-btn w-full max-w-md"
                     >
-                      {isAuditing ? 'Executing Penetration Test...' : 'Execute Audit'}
+                      {isAuditing ? 'Executing Protocol...' : 'Execute Audit'}
                     </button>
                   </div>
                   {lastAudit && (
-                    <div className="mt-12 space-y-8 animate-in fade-in zoom-in-95">
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                         <AuditWidget label="Risk" value={lastAudit.riskLevel} />
-                         <AuditWidget label="Entropy" value={`${lastAudit.encryptionStrength}%`} />
-                         <AuditWidget label="Integrity" value={`${lastAudit.integrityScore}%`} />
-                      </div>
-                      <div className="space-y-4">
-                        {lastAudit.vulnerabilities.map((v, i) => (
-                          <div key={i} className="bg-red-500/5 border-l-2 border-red-500 p-6 rounded-r-xl">
-                            <div className="text-red-400 font-bold text-xs uppercase mb-2">{v.type}</div>
-                            <p className="text-gray-300 text-xs mb-3 leading-relaxed">{v.description}</p>
-                            <div className="text-emerald-400/80 text-[10px] font-mono-tech">PROTOCOL: {v.mitigation}</div>
-                          </div>
-                        ))}
+                    <div className="mt-12 space-y-6">
+                      <div className="grid grid-cols-3 gap-4">
+                         <div className="bg-black p-4 border border-red-500/20 rounded-xl text-center">
+                           <div className="text-[10px] text-gray-500 uppercase font-mono-tech">Risk</div>
+                           <div className="text-xl font-black text-white">{lastAudit.riskLevel}</div>
+                         </div>
+                         <div className="bg-black p-4 border border-red-500/20 rounded-xl text-center">
+                           <div className="text-[10px] text-gray-500 uppercase font-mono-tech">Entropy</div>
+                           <div className="text-xl font-black text-white">{lastAudit.encryptionStrength}%</div>
+                         </div>
+                         <div className="bg-black p-4 border border-red-500/20 rounded-xl text-center">
+                           <div className="text-[10px] text-gray-500 uppercase font-mono-tech">Integrity</div>
+                           <div className="text-xl font-black text-white">{lastAudit.integrityScore}%</div>
+                         </div>
                       </div>
                     </div>
                   )}
@@ -256,44 +296,35 @@ const App: React.FC = () => {
               <div className="max-w-4xl mx-auto animate-in fade-in duration-500">
                 <div className="glass-panel p-10 rounded-3xl border-purple-500/20">
                   <h2 className="font-orbitron text-3xl font-black text-purple-400 uppercase italic mb-8">Synthesis Lab</h2>
-                  <div className="flex flex-wrap gap-4 mb-8">
-                    {['Tactical Brief', 'Community Post', 'Technical Whitepaper'].map(format => (
-                      <button key={format} onClick={() => setSynthFormat(format)} className={`px-4 py-2 text-[10px] font-mono-tech uppercase border transition-all ${synthFormat === format ? 'border-purple-500 bg-purple-500/20 text-white' : 'border-white/10 text-gray-500 hover:text-white'}`}>{format}</button>
-                    ))}
-                  </div>
                   <textarea 
                     value={synthPrompt}
                     onChange={(e) => setSynthPrompt(e.target.value)}
-                    placeholder="Describe core tech concepts for manifestation..."
-                    className="w-full bg-black/60 border border-purple-500/20 rounded-2xl p-8 font-mono-tech text-purple-100 min-h-[240px] focus:outline-none focus:border-purple-500 transition-all text-sm mb-10"
+                    placeholder="Prompt core intelligence..."
+                    className="w-full bg-black/60 border border-purple-500/20 rounded-2xl p-8 font-mono-tech text-purple-100 min-h-[240px] mb-12 focus:outline-none focus:border-purple-500"
                   />
-                  <button onClick={handleSynthesize} disabled={isSynthesizing || !synthPrompt} className="w-full py-5 bg-purple-600 hover:bg-purple-500 text-white font-orbitron font-bold uppercase tracking-widest disabled:opacity-20 transition-all">
-                    {isSynthesizing ? 'Manifesting Intelligence...' : 'Manifest Intel Report'}
-                  </button>
+                  <div className="flex justify-center pb-8">
+                    <button onClick={handleSynthesize} disabled={isSynthesizing || !synthPrompt} className="quantum-btn w-full max-w-md">
+                      {isSynthesizing ? 'Synthesizing...' : 'Generate Report'}
+                    </button>
+                  </div>
                 </div>
               </div>
             } />
+
+            <Route path="/manifest" element={<ManifestationHub onManifest={onManifested} />} />
 
             <Route path="/core" element={
               <div className="max-w-5xl mx-auto">
                 <div className="text-center mb-16">
                   <h2 className="font-orbitron text-5xl font-black text-white uppercase tracking-tighter mb-4 italic">Explorer Core</h2>
-                  <p className="text-gray-500 font-mono-tech text-xs uppercase tracking-[0.5em]">Neural Link Enhancement Modules</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                   {upgrades.map(upgrade => (
                     <div key={upgrade.id} className="glass-panel p-10 rounded-3xl border-white/5 hover:border-emerald-500/30 transition-all flex flex-col justify-between group">
                       <div>
-                        <div className="text-5xl mb-8 group-hover:scale-110 transition-transform">{upgrade.icon}</div>
+                        <div className="text-5xl mb-8">{upgrade.icon}</div>
                         <h3 className="font-orbitron text-2xl font-bold text-white mb-4">{upgrade.name}</h3>
                         <p className="text-gray-400 text-sm mb-8">{upgrade.description}</p>
-                        <div className="flex justify-between items-end mb-3">
-                          <span className="text-[10px] font-mono-tech text-emerald-400 uppercase font-bold tracking-widest">Lvl {upgrade.level}</span>
-                          <span className="text-[10px] font-mono-tech text-gray-500 uppercase">{upgrade.benefitLabel}</span>
-                        </div>
-                        <div className="h-2 w-full bg-black/40 rounded-full overflow-hidden border border-white/5 mb-10">
-                          <div className="h-full bg-emerald-500" style={{ width: `${(upgrade.level/upgrade.maxLevel)*100}%` }} />
-                        </div>
                       </div>
                       <button 
                         onClick={() => {
@@ -305,7 +336,7 @@ const App: React.FC = () => {
                         disabled={essence < upgrade.cost || upgrade.level >= upgrade.maxLevel}
                         className="w-full py-4 border border-emerald-500/50 text-emerald-400 font-mono-tech text-sm uppercase hover:bg-emerald-500/20 transition-all disabled:opacity-10 rounded-xl"
                       >
-                        {upgrade.level >= upgrade.maxLevel ? 'MAXIMIZED' : `Initialize Upgrade: ${upgrade.cost}◈`}
+                        {upgrade.level >= upgrade.maxLevel ? 'MAX' : `Upgrade: ${upgrade.cost}◈`}
                       </button>
                     </div>
                   ))}
@@ -318,27 +349,19 @@ const App: React.FC = () => {
         <footer className="fixed bottom-0 left-0 right-0 glass-panel border-t border-cyan-500/20 px-6 py-3 flex justify-between items-center text-[9px] font-mono-tech text-gray-500 z-50">
           <div className="flex gap-8 items-center">
             <span className="flex items-center gap-2"><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> CORE_SYNC_READY</span>
-            <span className="hidden sm:inline">NODES: 1024</span>
-            <span className="hidden sm:inline">ASSETS: {inventions.length}</span>
+            <span className="hidden sm:inline uppercase">Assets: {inventions.length}</span>
           </div>
           <div className="flex gap-6 items-center">
-            <span className="text-cyan-600/60 uppercase">Quantum-Super CMS</span>
+            <span className="text-cyan-600/60 uppercase">Quantum-Super Hub</span>
             <button 
-              onClick={() => { if (window.confirm("RESET ALL HUB DATA?")) { localStorage.removeItem(STORAGE_KEY); window.location.reload(); } }}
-              className="text-red-900/40 hover:text-red-600 transition-colors uppercase border-l border-white/5 pl-6"
-            >Purge Core</button>
+              onClick={() => { if (window.confirm("RESET CORE DATA?")) { localStorage.removeItem(STORAGE_KEY); window.location.reload(); } }}
+              className="text-red-900/40 hover:text-red-600 transition-colors uppercase"
+            >Purge</button>
           </div>
         </footer>
       </div>
     </Router>
   );
 };
-
-const AuditWidget = ({ label, value }: { label: string, value: string }) => (
-  <div className="bg-black/50 p-6 border border-red-500/20 rounded-2xl text-center">
-    <div className="text-[10px] text-gray-500 font-mono-tech uppercase mb-2">{label}</div>
-    <div className="text-xl font-black text-white">{value}</div>
-  </div>
-);
 
 export default App;
